@@ -117,7 +117,7 @@ def load_config():
             print(f"Error loading config.json: {e}")
     return {
         "govee_api_key": "YOUR_GOVEE_API_KEY_HERE",
-        "access_pin": "1702",
+        "access_pin": "1234",
         "device_locations": {}
     }
 
@@ -303,7 +303,7 @@ class ControllerHandler(http.server.SimpleHTTPRequestHandler):
 
         if self.path == "/api/login":
             entered_pin = str(req_data.get("pin", "")).strip()
-            expected_pin = str(CONFIG.get("access_pin", "1702")).strip()
+            expected_pin = str(CONFIG.get("access_pin", "1234")).strip()
             if entered_pin == expected_pin:
                 token = secrets.token_hex(16)
                 VALID_TOKENS.add(token)
@@ -382,7 +382,7 @@ def run():
         print(" GOVEE MULTI-LAMP CONTROLLER")
         print("=" * 55)
         print(f" URL:        {url}")
-        print(f" Access PIN: {CONFIG.get('access_pin', '1702')}")
+        print(f" Access PIN: {CONFIG.get('access_pin', '1234')}")
         print(" Credentials loaded from config.json (protected).")
         print(" Press Ctrl+C to stop.")
         print("=" * 55)
