@@ -15,6 +15,55 @@ A minimalist, responsive web controller for Govee smart lights (supporting singl
 - **Dynamic Vector Graphics:** Real-time architectural fixture visualization and precision gauge powered by [Feather](https://github.com/Yannis-A-D/feather) rendering engine.
 - **Zero External Dependencies:** Built with Python standard library and vanilla web APIs. Seamlessly integrates with [Feather](https://github.com/Yannis-A-D/feather) when available.
 
+## System Architecture & Structure
+
+```mermaid
+flowchart TD
+    subgraph Client["Browser Client (Apple HomeKit UI)"]
+        UI["Web Interface (index.html)"]
+        PIN["PIN Authentication (1234)"]
+        VIS["Live Feather Vector Canvas"]
+        AUDIO["Web Audio API (Music Pulse)"]
+        SCREEN["Display Capture API (Ambilight)"]
+        VOICE["Web Speech API (Voice Control)"]
+    end
+
+    subgraph Backend["Local Server (Python)"]
+        SRV["HTTP Server (server.py:8000)"]
+        AUTH["Token Session Validator"]
+        TIMER["Background Auto-Off Timer"]
+        FEATHER["Feather Vector Engine (/api/graphics)"]
+        CFG[("Protected config.json")]
+    end
+
+    subgraph External["Cloud & Hardware"]
+        API["Govee Developer Cloud OpenAPI"]
+        LAMP["Govee Smart Ceiling Light (H60A1)"]
+    end
+
+    UI --> PIN --> SRV
+    UI <--> FEATHER
+    UI --> AUDIO
+    UI --> SCREEN
+    UI --> VOICE
+    SRV <--> CFG
+    SRV --> TIMER
+    SRV -->|HTTPS REST| API
+    API -->|Wi-Fi / BLE| LAMP
+```
+
+### Directory Structure
+
+```text
+govee-lamp-controller/
+├── index.html        # Apple HomeKit responsive interface & Web APIs
+├── server.py         # Python proxy server & Feather graphics renderer
+├── config.json       # Protected credentials & room tags (Git-ignored)
+├── start.bat         # 1-click Windows quick launcher
+├── .gitignore        # Prevents credential leakage
+└── README.md         # Documentation & setup guide
+```
+
 ## Setup & Configuration
 
 1. Create or edit `config.json`:
