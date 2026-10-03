@@ -17,6 +17,10 @@ A minimalist, responsive web controller for Govee smart lights (supporting singl
 
 ## System Architecture & Structure
 
+<p align="center">
+  <img src="assets/structure.png" alt="Govee Lamp Controller Architecture rendered by Feather Engine" width="100%" />
+</p>
+
 ```mermaid
 flowchart TD
     subgraph Client["Browser Client (Apple HomeKit UI)"]
