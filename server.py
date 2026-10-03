@@ -32,7 +32,7 @@ def render_feather_graphic(graphic_type="lamp", color_hex="#3b82f6", brightness=
         try:
             if graphic_type == "gauge":
                 val = float(brightness if is_on else 0)
-                display_color = color_hex if is_on else "#475569"
+                display_color = color_hex if is_on else "#52525b"
                 title = f"{sku} OUTPUT" if is_on else f"{sku} (OFF)"
                 gauge = feather.charts.Gauge(
                     value=val,
@@ -47,40 +47,54 @@ def render_feather_graphic(graphic_type="lamp", color_hex="#3b82f6", brightness=
                     arc_width=18.0
                 )
                 canvas = gauge.render()
-                canvas.draw_text("RENDERED WITH FEATHER ENGINE", 140, 246, size=10, color="#475569")
+                canvas.draw_text("POWERED BY FEATHER ENGINE", 148, 246, size=10, color="#52525b")
                 img = canvas.to_pillow()
                 buf = io.BytesIO()
                 img.save(buf, format="PNG")
                 return buf.getvalue()
             else:
-                # Architectural Lamp Fixture Render
+                # Realistic Architectural Luminaire Render
                 w, h = 480, 260
-                canvas = feather.Canvas(w, h, background="#0a0e17")
+                canvas = feather.Canvas(w, h, background="#050507")
                 cx, cy = 240, 115
                 
-                # Housing outer rim
-                canvas.draw_circle(cx, cy, 96, fill="#111622", stroke="#1e293b", stroke_width=2.0)
-                canvas.draw_circle(cx, cy, 84, fill="#0f172a", stroke="#334155", stroke_width=1.0)
-                
                 if is_on:
-                    canvas.draw_glow(cx, cy, 70, blur=24.0, color=color_hex)
-                    canvas.draw_circle(cx, cy, 32, fill=color_hex, stroke="#ffffff", stroke_width=1.0)
+                    # Multi-layer ambient bounce halo
+                    canvas.draw_glow(cx, cy, 112, blur=38.0, color=color_hex)
+                    canvas.draw_glow(cx, cy, 75, blur=18.0, color=color_hex)
+                    # Outer architectural anodized bezel
+                    canvas.draw_circle(cx, cy, 94, fill="#18181b", stroke="#27272a", stroke_width=2.0)
+                    # Continuous frosted diffuser ring
+                    canvas.draw_circle(cx, cy, 84, fill=color_hex, stroke="#ffffff", stroke_width=0.6)
+                    # Recessed inner channel / baffle
+                    canvas.draw_circle(cx, cy, 50, fill="#18181b", stroke="#27272a", stroke_width=1.0)
+                    # Center optical dome diffuser
+                    canvas.draw_circle(cx, cy, 42, fill=color_hex, stroke="#ffffff", stroke_width=0.6)
+                    # 12 precision architectural zone dividers
                     for i in range(12):
                         angle = i * (2 * math.pi / 12)
-                        sx = cx + math.cos(angle) * 60
-                        sy = cy + math.sin(angle) * 60
-                        canvas.draw_circle(sx, sy, 11, fill=color_hex, stroke="#ffffff", stroke_width=0.8)
+                        x1 = cx + math.cos(angle) * 50
+                        y1 = cy + math.sin(angle) * 50
+                        x2 = cx + math.cos(angle) * 84
+                        y2 = cy + math.sin(angle) * 84
+                        canvas.draw_line(x1, y1, x2, y2, stroke="#18181b", stroke_width=1.5)
                 else:
-                    canvas.draw_circle(cx, cy, 32, fill="#1e293b", stroke="#334155", stroke_width=1.0)
+                    # Dormant matte black fixture
+                    canvas.draw_circle(cx, cy, 94, fill="#121214", stroke="#1c1c1e", stroke_width=2.0)
+                    canvas.draw_circle(cx, cy, 84, fill="#1a1a1e", stroke="#27272a", stroke_width=0.5)
+                    canvas.draw_circle(cx, cy, 50, fill="#121214", stroke="#1c1c1e", stroke_width=1.0)
+                    canvas.draw_circle(cx, cy, 42, fill="#1a1a1e", stroke="#27272a", stroke_width=0.5)
                     for i in range(12):
                         angle = i * (2 * math.pi / 12)
-                        sx = cx + math.cos(angle) * 60
-                        sy = cy + math.sin(angle) * 60
-                        canvas.draw_circle(sx, sy, 11, fill="#1e293b", stroke="#334155", stroke_width=0.8)
+                        x1 = cx + math.cos(angle) * 50
+                        y1 = cy + math.sin(angle) * 50
+                        x2 = cx + math.cos(angle) * 84
+                        y2 = cy + math.sin(angle) * 84
+                        canvas.draw_line(x1, y1, x2, y2, stroke="#121214", stroke_width=1.5)
                 
-                status_str = f"{loc.upper()}  •  {brightness}%" if is_on else f"{loc.upper()}  •  OFF / STANDBY"
-                canvas.draw_text(status_str, 20, 240, size=11, color="#64748b")
-                canvas.draw_text("FEATHER ENGINE", 365, 240, size=10, color="#38bdf8")
+                status_str = f"{loc.upper()}  •  {brightness}%" if is_on else f"{loc.upper()}  •  STANDBY"
+                canvas.draw_text(status_str, 20, 240, size=11, color="#71717a")
+                canvas.draw_text("FEATHER ENGINE", 360, 240, size=10, color="#38bdf8")
                 
                 img = canvas.to_pillow()
                 buf = io.BytesIO()
@@ -92,15 +106,15 @@ def render_feather_graphic(graphic_type="lamp", color_hex="#3b82f6", brightness=
     # Fallback with PIL if feather is unavailable
     try:
         from PIL import Image, ImageDraw
-        img = Image.new("RGB", (480, 260), "#0a0e17")
+        img = Image.new("RGB", (480, 260), "#050507")
         draw = ImageDraw.Draw(img)
         cx, cy = 240, 115
         fill_col = color_hex if is_on else "#1e293b"
         draw.ellipse([cx-80, cy-80, cx+80, cy+80], outline="#334155", width=2)
-        draw.ellipse([cx-30, cy-30, cx+30, cy+30], fill=fill_col, outline="#ffffff" if is_on else "#334155")
+        draw.ellipse([cx-40, cy-40, cx+40, cy+40], fill=fill_col, outline="#ffffff" if is_on else "#334155")
         status_str = f"{sku}  •  {brightness}%" if is_on else f"{sku}  •  OFF"
         draw.text((20, 235), status_str, fill="#64748b")
-        draw.text((370, 235), "FEATHER FALLBACK", fill="#38bdf8")
+        draw.text((360, 235), "FEATHER FALLBACK", fill="#38bdf8")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
