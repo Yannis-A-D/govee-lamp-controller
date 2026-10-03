@@ -1,0 +1,8 @@
+{
+  "remote.portsAttributes": {
+    "8000": {
+      "label": "Govee Lamp Controller",
+      "onAutoForward": "notify"
+    }
+  }
+}

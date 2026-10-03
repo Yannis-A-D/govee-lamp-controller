@@ -1,0 +1,7 @@
+{
+  "govee_api_key": "YOUR_GOVEE_API_KEY_HERE",
+  "access_pin": "1702",
+  "device_locations": {
+    "SAMPLE_DEVICE_MAC": "Living Room"
+  }
+}

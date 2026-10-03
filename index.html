@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Govee Lamp Controller</title>
+  <style>
+    :root {
+      --bg-canvas: #090d14;
+      --bg-card: #111622;
+      --bg-card-hover: #141b2a;
+      --bg-well: #0b0f19;
+      --bg-element: #1a2233;
+      --bg-element-hover: #222c42;
+      
+      --border-subtle: #1e2638;
+      --border-medium: #2a354c;
+      --border-highlight: #3b82f6;
+
+      --text-main: #f0f4fc;
+      --text-muted: #8c9bb0;
+      --text-dim: #546279;
+
+      --accent-primary: #3b82f6;
+      --accent-primary-hover: #2563eb;
+      --status-success: #10b981;
+      --status-success-bg: #064e3b;
+      --status-danger: #ef4444;
+      --status-danger-bg: #450a0a;
+      --status-warning: #f59e0b;
+
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 10px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 620px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .device-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Status indicator */
+    .status-badge {
+      font-size: 12px;
+      font-weight: 400;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      color: var(--text-muted);
+      border: none;
+      padding: 0;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--text-dim);
+    }
+
+    .status-badge.online {
+      color: var(--text-muted);
+      background: none;
+      border: none;
+    }
+    .status-badge.online .status-dot {
+      background-color: var(--status-success);
+    }
+
+    .status-badge.offline {
+      color: var(--text-muted);
+      background: none;
+      border: none;
+    }
+    .status-badge.offline .status-dot {
+      background-color: var(--status-danger);
+    }
+
+    /* Navigation Tabs */
+    .tab-bar {
+      display: flex;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.12s ease, color 0.12s ease;
+      user-select: none;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background-color: var(--bg-element);
+    }
+
+    .tab-btn.active {
+      background-color: var(--bg-element-hover);
+      color: var(--text-main);
+      border: 1px solid var(--border-medium);
+    }
+
+    /* Card Component */
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.15s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-medium);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-value {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      padding: 0;
+      border-radius: 0;
+      font-family: inherit;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+      user-select: none;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-element);
+      color: var(--text-main);
+      border-color: var(--border-medium);
+    }
+    .btn-secondary:hover {
+      background-color: var(--bg-element-hover);
+      border-color: var(--text-dim);
+    }
+
+    .btn-on {
+      background-color: #065f46;
+      color: #ecfdf5;
+      border-color: #059669;
+      flex: 1;
+      padding: 13px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .btn-on:hover {
+      background-color: #059669;
+    }
+    .btn-on.active {
+      background-color: #059669;
+      box-shadow: 0 0 0 2px #10b981;
+    }
+
+    .btn-off {
+      background-color: var(--bg-element);
+      color: #fca5a5;
+      border-color: #7f1d1d;
+      flex: 1;
+      padding: 13px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .btn-off:hover {
+      background-color: #991b1b;
+      color: #ffffff;
+      border-color: #dc2626;
+    }
+    .btn-off.active {
+      background-color: #991b1b;
+      color: #ffffff;
+      border-color: #dc2626;
+    }
+
+    .btn-preset {
+      background-color: var(--bg-well);
+      color: var(--text-muted);
+      border-color: var(--border-subtle);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      flex: 1;
+      min-width: 52px;
+    }
+    .btn-preset:hover {
+      background-color: var(--bg-element);
+      color: var(--text-main);
+      border-color: var(--border-medium);
+    }
+
+    /* Scene Grid */
+    .scene-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 500px) {
+      .scene-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .btn-scene {
+      background-color: var(--bg-well);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 12px 10px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+      user-select: none;
+    }
+    .btn-scene:hover {
+      background-color: var(--bg-element);
+      border-color: var(--accent-primary);
+    }
+    .btn-scene:active {
+      transform: scale(0.98);
+    }
+    .btn-scene-sub {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--text-dim);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    /* Sliders */
+    .slider-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background-color: var(--bg-well);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: var(--accent-primary);
+      border: 2px solid var(--bg-card);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: var(--accent-primary);
+      border: 2px solid var(--bg-card);
+      cursor: pointer;
+    }
+
+    .preset-flex {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* Color picker & Swatches */
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      width: 40px;
+      height: 40px;
+      background-color: var(--bg-well);
+      cursor: pointer;
+      padding: 2px;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+
+    .color-hex-tag {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .swatches-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+
+    .color-swatch {
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: transform 0.1s ease, border-color 0.1s ease;
+    }
+    .color-swatch:hover {
+      border-color: #ffffff;
+      transform: scale(1.08);
+    }
+
+    /* Visualizer */
+    .audio-visualizer-box {
+      background-color: var(--bg-well);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .visualizer-canvas {
+      width: 100%;
+      height: 44px;
+      background-color: var(--bg-well);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    .beat-pill {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .beat-pill.active {
+      color: var(--status-warning);
+    }
+
+    /* Ambilight */
+    .ambilight-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ambilight-preview-box {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-medium);
+      background-color: var(--bg-well);
+      flex-shrink: 0;
+    }
+
+    /* Voice commands */
+    .voice-command-tag {
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    /* Log Console */
+    .console-box {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 6px 4px;
+      min-height: unset;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .console-time {
+      color: var(--text-dim);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .console-success {
+      color: var(--status-success);
+    }
+
+    .console-error {
+      color: var(--status-danger);
+    }
+
+    /* Tab display logic */
+    .view-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .view-section.hidden {
+      display: none;
+    }
+
+    /* Lamp Card in Menu */
+    .lamp-card {
+      background-color: var(--bg-well);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.15s ease;
+    }
+    .lamp-card:hover {
+      border-color: var(--border-medium);
+    }
+    .lamp-card.active-lamp {
+      border-color: var(--accent-primary);
+    }
+    .lamp-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .lamp-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .lamp-card-location {
+      font-size: 12px;
+      color: var(--accent-primary);
+      margin-top: 2px;
+    }
+    .lamp-card-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .lamp-card-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    /* PIN Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(9, 13, 20, 0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 340px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .modal-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .pin-input {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 24px;
+      letter-spacing: 10px;
+      text-align: center;
+      background-color: var(--bg-well);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 10px;
+      border-radius: var(--radius-md);
+      width: 100%;
+      outline: none;
+    }
+    .pin-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .pin-error {
+      font-size: 12px;
+      color: var(--status-danger);
+      min-height: 16px;
+    }
+
+    svg {
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PIN Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div class="modal-title">Access Locked</div>
+      <div class="modal-desc">Enter your 4-digit PIN code to access the controller.</div>
+      <input type="password" id="pinInput" class="pin-input" maxlength="8" placeholder="••••" autocomplete="off" autofocus>
+      <div class="pin-error" id="pinError"></div>
+      <button class="btn btn-on" id="loginBtn" style="padding: 10px;">Unlock</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="header-info">
+        <div class="header-title-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          <span class="brand-title" id="headerDeviceName">Ceiling Light</span>
+        </div>
+        <div class="device-sub" id="headerDeviceLocation">Ceiling / Main Room · H60A1</div>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span id="statusText">Connecting</span>
+        </div>
+        <button class="btn btn-secondary" id="refreshBtn" title="Sync device status">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          Sync
+        </button>
+        <button class="btn btn-secondary" id="logoutBtn" title="Lock controller">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Lock
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="lamps">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Lamps
+      </button>
+      <button class="tab-btn" data-tab="controls">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Controls
+      </button>
+      <button class="tab-btn" data-tab="interactive">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        Interactive
+      </button>
+      <button class="tab-btn" data-tab="all">All</button>
+    </div>
+
+    <!-- LAMPS MENU SECTION -->
+    <div class="view-section" id="section-lamps">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Connected Lamps</span>
+          <span class="card-value" id="deviceCountLabel">Loading lamps...</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+          Select any lamp connected to your Govee account to control it or set its room location.
+        </div>
+        <div id="deviceListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamically populated lamp cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS SECTION -->
+    <div class="view-section hidden" id="section-controls">
+      <!-- Quick Presets -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Quick Presets</span>
+        </div>
+        <div class="scene-grid">
+          <button class="btn-scene" data-scene="focus">
+            <span>Focus</span>
+            <span class="btn-scene-sub">100% · 6000K</span>
+          </button>
+          <button class="btn-scene" data-scene="reading">
+            <span>Reading</span>
+            <span class="btn-scene-sub">75% · 4000K</span>
+          </button>
+          <button class="btn-scene" data-scene="relax">
+            <span>Relax</span>
+            <span class="btn-scene-sub">30% · 2700K</span>
+          </button>
+          <button class="btn-scene" data-scene="night">
+            <span>Night Light</span>
+            <span class="btn-scene-sub">2% · 2200K</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Power -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Power</span>
+          <span class="card-value" id="powerStatus">Unknown</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-on" id="turnOnBtn">Turn on</button>
+          <button class="btn btn-off" id="turnOffBtn">Turn off</button>
+        </div>
+      </div>
+
+      <!-- Brightness -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Brightness</span>
+          <span class="card-value" id="brightnessVal">--%</span>
+        </div>
+        <div class="slider-box">
+          <input type="range" id="brightnessSlider" min="1" max="100" value="100">
+          <div class="preset-flex">
+            <button class="btn btn-preset" data-brightness="10">10%</button>
+            <button class="btn btn-preset" data-brightness="25">25%</button>
+            <button class="btn btn-preset" data-brightness="50">50%</button>
+            <button class="btn btn-preset" data-brightness="75">75%</button>
+            <button class="btn btn-preset" data-brightness="100">100%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RGB Color -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Color (RGB)</span>
+          <span class="card-value" id="colorVal">#FFFFFF</span>
+        </div>
+        <div class="color-picker-row">
+          <input type="color" id="colorPicker" value="#ffffff">
+          <div class="color-hex-tag" id="colorHexText">#FFFFFF</div>
+          <button class="btn btn-secondary" id="applyColorBtn">Apply</button>
+        </div>
+        <div class="swatches-grid">
+          <button class="color-swatch" data-hex="#ffffff" title="White" style="background-color: #ffffff;"></button>
+          <button class="color-swatch" data-hex="#ffe4b5" title="Warm White" style="background-color: #ffe4b5;"></button>
+          <button class="color-swatch" data-hex="#ef4444" title="Red" style="background-color: #ef4444;"></button>
+          <button class="color-swatch" data-hex="#f97316" title="Orange" style="background-color: #f97316;"></button>
+          <button class="color-swatch" data-hex="#eab308" title="Yellow" style="background-color: #eab308;"></button>
+          <button class="color-swatch" data-hex="#22c55e" title="Green" style="background-color: #22c55e;"></button>
+          <button class="color-swatch" data-hex="#06b6d4" title="Cyan" style="background-color: #06b6d4;"></button>
+          <button class="color-swatch" data-hex="#3b82f6" title="Blue" style="background-color: #3b82f6;"></button>
+        </div>
+      </div>
+
+      <!-- Color Temperature -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Color Temperature</span>
+          <span class="card-value" id="tempVal">-- K</span>
+        </div>
+        <div class="slider-box">
+          <input type="range" id="tempSlider" min="2200" max="6500" value="4000" step="50">
+          <div class="preset-flex">
+            <button class="btn btn-preset" data-temp="2700">Warm (2700K)</button>
+            <button class="btn btn-preset" data-temp="4000">Neutral (4000K)</button>
+            <button class="btn btn-preset" data-temp="5000">Daylight (5000K)</button>
+            <button class="btn btn-preset" data-temp="6500">Cool (6500K)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-Off Timer -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Auto-Off Timer</span>
+          <span class="card-value" id="timerDisplay">Inactive</span>
+        </div>
+        <div class="preset-flex">
+          <button class="btn btn-preset" data-timer="15">15 Min</button>
+          <button class="btn btn-preset" data-timer="30">30 Min</button>
+          <button class="btn btn-preset" data-timer="60">60 Min</button>
+          <button class="btn btn-preset" data-timer="0" id="cancelTimerBtn">Cancel Timer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE SECTION -->
+    <div class="view-section hidden" id="section-interactive">
+      <!-- Music Beat Pulse -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Music Beat Pulse</span>
+          <span class="beat-pill" id="beatIndicator">Mic Off</span>
+        </div>
+        <div class="audio-visualizer-box">
+          <canvas id="audioVisualizer" class="visualizer-canvas" height="44"></canvas>
+        </div>
+        <div class="preset-flex">
+          <button class="btn btn-preset" id="modeColorBtn" style="background-color: var(--bg-element-hover); color: var(--accent-primary);">Color Shift</button>
+          <button class="btn btn-preset" id="modePulseBtn">Bass Pulse</button>
+          <button class="btn btn-preset" id="modeBothBtn">Rave Flash</button>
+        </div>
+        <div class="slider-box">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span>Sensitivity</span>
+            <span id="sensitivityVal" style="font-family: monospace;">50%</span>
+          </div>
+          <input type="range" id="sensitivitySlider" min="10" max="90" value="50">
+        </div>
+        <button class="btn btn-on" id="toggleMicBtn" style="padding: 10px;">Start Mic Listening</button>
+      </div>
+
+      <!-- Screen Ambilight Mirror -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Screen Ambilight Mirror</span>
+          <span class="status-badge" id="ambilightBadge">
+            <span class="status-dot"></span>
+            <span id="ambilightStatus">Inactive</span>
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+          Dynamically samples your screen colors and synchronizes the ceiling light in real time.
+        </div>
+        <div class="ambilight-row">
+          <div class="ambilight-preview-box" id="ambilightPreview"></div>
+          <div class="color-hex-tag" id="ambilightHex">#------</div>
+          <button class="btn btn-secondary" id="toggleAmbilightBtn" style="margin-left: auto;">Start Screen Mirror</button>
+        </div>
+      </div>
+
+      <!-- Voice Commands -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Browser Voice Commands</span>
+          <span class="status-badge" id="voiceBadge">
+            <span class="status-dot"></span>
+            <span id="voiceStatus">Mic Off</span>
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div style="font-size: 12px; color: var(--text-muted);" id="voiceTranscript">Say: "Lights on", "Reading", "Red", "Dimmer"</div>
+          <button class="btn btn-secondary" id="toggleVoiceBtn">Enable Voice</button>
+        </div>
+        <div class="preset-flex" style="gap: 6px;">
+          <span class="voice-command-tag">"turn on / off"</span>
+          <span class="voice-command-tag">"brighter / dimmer"</span>
+          <span class="voice-command-tag">"red / blue / warm white"</span>
+          <span class="voice-command-tag">"reading / focus / night light"</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Console -->
+    <div class="console-box" id="logBox">
+      <span class="console-time">[Init]</span> Controller ready.
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem("govee_auth_token") || "";
+    let timerInterval = null;
+
+    // Elements
+    const authModal = document.getElementById("authModal");
+    const pinInput = document.getElementById("pinInput");
+    const pinError = document.getElementById("pinError");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const statusBadge = document.getElementById("statusBadge");
+    const statusText = document.getElementById("statusText");
+    const powerStatus = document.getElementById("powerStatus");
+    const brightnessVal = document.getElementById("brightnessVal");
+    const brightnessSlider = document.getElementById("brightnessSlider");
+    const colorVal = document.getElementById("colorVal");
+    const colorPicker = document.getElementById("colorPicker");
+    const colorHexText = document.getElementById("colorHexText");
+    const tempVal = document.getElementById("tempVal");
+    const tempSlider = document.getElementById("tempSlider");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const logBox = document.getElementById("logBox");
+
+    const turnOnBtn = document.getElementById("turnOnBtn");
+    const turnOffBtn = document.getElementById("turnOffBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const applyColorBtn = document.getElementById("applyColorBtn");
+
+    // Tab Bar & View Logic
+    const tabBtns = document.querySelectorAll(".tab-btn");
+    const sectionLamps = document.getElementById("section-lamps");
+    const sectionControls = document.getElementById("section-controls");
+    const sectionInteractive = document.getElementById("section-interactive");
+
+    function switchTab(tab) {
+      tabBtns.forEach(b => {
+        b.classList.toggle("active", b.dataset.tab === tab);
+      });
+
+      if (tab === "lamps") {
+        sectionLamps.classList.remove("hidden");
+        sectionControls.classList.add("hidden");
+        sectionInteractive.classList.add("hidden");
+      } else if (tab === "controls") {
+        sectionLamps.classList.add("hidden");
+        sectionControls.classList.remove("hidden");
+        sectionInteractive.classList.add("hidden");
+      } else if (tab === "interactive") {
+        sectionLamps.classList.add("hidden");
+        sectionControls.classList.add("hidden");
+        sectionInteractive.classList.remove("hidden");
+      } else if (tab === "all") {
+        sectionLamps.classList.remove("hidden");
+        sectionControls.classList.remove("hidden");
+        sectionInteractive.classList.remove("hidden");
+      }
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    // Multi-Device Management
+    let allDevices = [];
+    let currentDevice = null;
+
+    const deviceCountLabel = document.getElementById("deviceCountLabel");
+    const deviceListContainer = document.getElementById("deviceListContainer");
+    const headerDeviceName = document.getElementById("headerDeviceName");
+    const headerDeviceLocation = document.getElementById("headerDeviceLocation");
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    async function fetchDevices() {
+      if (deviceCountLabel) deviceCountLabel.textContent = "Loading...";
+      try {
+        const res = await apiRequest("/api/devices");
+        if (res.code === 200 && Array.isArray(res.data)) {
+          allDevices = res.data;
+          if (deviceCountLabel) {
+            deviceCountLabel.textContent = `${allDevices.length} ${allDevices.length === 1 ? 'lamp' : 'lamps'} found`;
+          }
+          renderDeviceList();
+
+          const savedDeviceId = localStorage.getItem("govee_selected_device");
+          let match = allDevices.find(d => d.device === savedDeviceId);
+          if (!match && allDevices.length > 0) {
+            match = allDevices[0];
+          }
+
+          if (match) {
+            selectDevice(match, false);
+          }
+        } else {
+          if (deviceCountLabel) deviceCountLabel.textContent = "No lamps found";
+        }
+      } catch (err) {
+        if (deviceCountLabel) deviceCountLabel.textContent = "Error loading";
+      }
+    }
+
+    function renderDeviceList() {
+      if (!deviceListContainer) return;
+      deviceListContainer.innerHTML = "";
+      if (allDevices.length === 0) {
+        deviceListContainer.innerHTML = '<div style="font-size: 13px; color: var(--text-muted); padding: 12px 0;">No lamps found on this Govee account.</div>';
+        return;
+      }
+
+      allDevices.forEach(d => {
+        const isCurrent = currentDevice && currentDevice.device === d.device;
+        const card = document.createElement("div");
+        card.className = `lamp-card ${isCurrent ? 'active-lamp' : ''}`;
+        card.innerHTML = `
+          <div class="lamp-card-top">
+            <div>
+              <div class="lamp-card-name">${escapeHtml(d.deviceName || 'Lamp')}</div>
+              <div class="lamp-card-location">${escapeHtml(d.location || 'Location not set')}</div>
+            </div>
+            <div class="lamp-card-meta">${escapeHtml(d.sku)}</div>
+          </div>
+          <div class="lamp-card-meta">${escapeHtml(d.device)}</div>
+          <div class="lamp-card-actions">
+            <button class="btn btn-on select-btn" style="flex: 1; padding: 9px;">${isCurrent ? 'Current Lamp' : 'Select Lamp'}</button>
+            <button class="btn btn-secondary edit-loc-btn" style="padding: 9px 12px;">Edit Location</button>
+          </div>
+        `;
+
+        card.querySelector(".select-btn").addEventListener("click", () => {
+          selectDevice(d, true);
+        });
+
+        card.querySelector(".edit-loc-btn").addEventListener("click", async () => {
+          const newLoc = prompt(`Enter room / location for "${d.deviceName}":`, d.location || "");
+          if (newLoc !== null && newLoc.trim() !== "") {
+            const locClean = newLoc.trim();
+            d.location = locClean;
+            renderDeviceList();
+            if (currentDevice && currentDevice.device === d.device) {
+              currentDevice.location = locClean;
+              updateHeaderDevice();
+            }
+            try {
+              await apiRequest("/api/devices/location", "POST", {
+                device: d.device,
+                location: locClean
+              });
+              log(`Location updated for ${d.deviceName}: ${locClean}`, "success");
+            } catch (err) {
+              log(`Failed to save location: ${err.message}`, "error");
+            }
+          }
+        });
+
+        deviceListContainer.appendChild(card);
+      });
+    }
+
+    function selectDevice(device, autoSwitchTab = true) {
+      currentDevice = device;
+      localStorage.setItem("govee_selected_device", device.device);
+      updateHeaderDevice();
+      renderDeviceList();
+      fetchState();
+      fetchTimer();
+      if (autoSwitchTab) {
+        switchTab("controls");
+        log(`Selected ${device.deviceName} (${device.location || device.sku})`, "success");
+      }
+    }
+
+    function updateHeaderDevice() {
+      if (!currentDevice) return;
+      if (headerDeviceName) headerDeviceName.textContent = currentDevice.deviceName || "Govee Lamp";
+      if (headerDeviceLocation) headerDeviceLocation.textContent = `${currentDevice.location || 'Location not set'} · ${currentDevice.sku}`;
+    }
+
+    function log(message, type = "info") {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(" ")[0];
+      const classAttr = type === "success" ? "console-success" : (type === "error" ? "console-error" : "");
+      logBox.innerHTML = `<span class="console-time">[${timeStr}]</span> <span class="${classAttr}">${message}</span>`;
+    }
+
+    async function apiRequest(endpoint, method = "GET", data = null) {
+      const headers = { "Content-Type": "application/json" };
+      if (authToken) {
+        headers["X-Auth-Token"] = authToken;
+      }
+
+      const options = { method, headers };
+      if (data && method !== "GET") {
+        options.body = JSON.stringify(data);
+      }
+
+      const res = await fetch(endpoint, options);
+      if (res.status === 401) {
+        showAuthModal();
+        throw new Error("Authentication required");
+      }
+      return await res.json();
+    }
+
+    function showAuthModal() {
+      authModal.classList.remove("hidden");
+      pinInput.value = "";
+      pinError.textContent = "";
+      pinInput.focus();
+    }
+
+    function hideAuthModal() {
+      authModal.classList.add("hidden");
+    }
+
+    async function performLogin() {
+      const pin = pinInput.value.trim();
+      if (!pin) {
+        pinError.textContent = "Please enter your PIN.";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pin })
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          authToken = data.token;
+          localStorage.setItem("govee_auth_token", authToken);
+          hideAuthModal();
+          log("Authenticated successfully", "success");
+          fetchDevices();
+        } else {
+          pinError.textContent = data.error || "Incorrect PIN";
+        }
+      } catch (err) {
+        pinError.textContent = "Server unreachable";
+      }
+    }
+
+    loginBtn.addEventListener("click", performLogin);
+    pinInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") performLogin();
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      authToken = "";
+      localStorage.removeItem("govee_auth_token");
+      showAuthModal();
+      log("Session locked");
+    });
+
+    async function sendControl(capability) {
+      if (!currentDevice) {
+        log("No lamp selected", "error");
+        return false;
+      }
+      try {
+        const data = await apiRequest("/api/control", "POST", {
+          sku: currentDevice.sku,
+          device: currentDevice.device,
+          capability: capability
+        });
+        if (data.code === 200) {
+          log(`Updated ${capability.instance}`, "success");
+          return true;
+        } else {
+          log(`Error: ${data.message || data.code}`, "error");
+          return false;
+        }
+      } catch (err) {
+        if (err.message !== "Authentication required") {
+          log(`Request failed: ${err.message}`, "error");
+        }
+        return false;
+      }
+    }
+
+    async function fetchState() {
+      if (!currentDevice) return;
+      statusBadge.className = "status-badge";
+      statusText.textContent = "Updating...";
+
+      try {
+        const data = await apiRequest(`/api/status?device=${encodeURIComponent(currentDevice.device)}&sku=${encodeURIComponent(currentDevice.sku)}`);
+        if (data.code !== 200 || !data.payload || !data.payload.capabilities) {
+          throw new Error(data.message || `Code ${data.code}`);
+        }
+
+        const caps = data.payload.capabilities;
+        caps.forEach(cap => {
+          if (cap.instance === "online") {
+            const isOnline = Boolean(cap.state && cap.state.value);
+            statusBadge.className = isOnline ? "status-badge online" : "status-badge offline";
+            statusText.textContent = isOnline ? "Online" : "Offline";
+          }
+          if (cap.instance === "powerSwitch") {
+            const isOn = cap.state && cap.state.value === 1;
+            powerStatus.textContent = isOn ? "On" : "Off";
+            powerStatus.style.color = isOn ? "var(--status-success)" : "var(--text-muted)";
+            if (isOn) {
+              turnOnBtn.classList.add("active");
+              turnOffBtn.classList.remove("active");
+            } else {
+              turnOffBtn.classList.add("active");
+              turnOnBtn.classList.remove("active");
+            }
+          }
+          if (cap.instance === "brightness") {
+            const b = cap.state && cap.state.value;
+            if (b !== undefined && b !== null && b !== "") {
+              brightnessSlider.value = b;
+              brightnessVal.textContent = b + "%";
+            }
+          }
+          if (cap.instance === "colorRgb") {
+            const c = cap.state && cap.state.value;
+            if (c !== undefined && c !== null && c !== "") {
+              const hex = "#" + Number(c).toString(16).padStart(6, "0");
+              colorPicker.value = hex;
+              colorHexText.textContent = hex.toUpperCase();
+              colorVal.textContent = hex.toUpperCase();
+            }
+          }
+          if (cap.instance === "colorTemperatureK") {
+            const t = cap.state && cap.state.value;
+            if (t !== undefined && t !== null && t !== "") {
+              tempSlider.value = t;
+              tempVal.textContent = t + " K";
+            }
+          }
+        });
+
+        log("Lamp state synchronized", "success");
+      } catch (err) {
+        if (err.message !== "Authentication required") {
+          statusBadge.className = "status-badge offline";
+          statusText.textContent = "Offline";
+          log(`Failed to fetch state: ${err.message}`, "error");
+        }
+      }
+    }
+
+    async function fetchTimer() {
+      try {
+        const data = await apiRequest("/api/timer");
+        if (data.active && data.remaining > 0) {
+          startTimerCountdown(data.remaining);
+        } else {
+          stopTimerCountdown();
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    function startTimerCountdown(seconds) {
+      if (timerInterval) clearInterval(timerInterval);
+      let rem = seconds;
+
+      const updateText = () => {
+        if (rem <= 0) {
+          timerDisplay.textContent = "Inactive";
+          clearInterval(timerInterval);
+          fetchState();
+          return;
+        }
+        const m = Math.floor(rem / 60);
+        const s = rem % 60;
+        timerDisplay.textContent = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+        rem--;
+      };
+
+      updateText();
+      timerInterval = setInterval(updateText, 1000);
+    }
+
+    function stopTimerCountdown() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerDisplay.textContent = "Inactive";
+    }
+
+    document.querySelectorAll("[data-timer]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const minutes = parseInt(btn.dataset.timer, 10);
+        if (minutes > 0) {
+          log(`Setting timer for ${minutes} min...`);
+          const res = await apiRequest("/api/timer", "POST", { minutes: minutes });
+          if (res.success) {
+            startTimerCountdown(minutes * 60);
+            log(`Timer active: ${minutes} min`, "success");
+          }
+        } else {
+          log("Cancelling timer...");
+          const res = await apiRequest("/api/timer", "POST", { minutes: 0 });
+          if (res.success) {
+            stopTimerCountdown();
+            log("Timer cancelled", "success");
+          }
+        }
+      });
+    });
+
+    // Scene Presets
+    document.querySelectorAll("[data-scene]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const scene = btn.dataset.scene;
+        if (scene === "focus") {
+          log("Focus scene (100% · 6000K)");
+          await sendControl({ type: "devices.capabilities.on_off", instance: "powerSwitch", value: 1 });
+          await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: 100 });
+          await sendControl({ type: "devices.capabilities.color_setting", instance: "colorTemperatureK", value: 6000 });
+          brightnessSlider.value = 100;
+          brightnessVal.textContent = "100%";
+          tempSlider.value = 6000;
+          tempVal.textContent = "6000 K";
+          powerStatus.textContent = "On";
+          powerStatus.style.color = "var(--status-success)";
+        } else if (scene === "reading") {
+          log("Reading scene (75% · 4000K)");
+          await sendControl({ type: "devices.capabilities.on_off", instance: "powerSwitch", value: 1 });
+          await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: 75 });
+          await sendControl({ type: "devices.capabilities.color_setting", instance: "colorTemperatureK", value: 4000 });
+          brightnessSlider.value = 75;
+          brightnessVal.textContent = "75%";
+          tempSlider.value = 4000;
+          tempVal.textContent = "4000 K";
+          powerStatus.textContent = "On";
+          powerStatus.style.color = "var(--status-success)";
+        } else if (scene === "relax") {
+          log("Relax scene (30% · 2700K)");
+          await sendControl({ type: "devices.capabilities.on_off", instance: "powerSwitch", value: 1 });
+          await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: 30 });
+          await sendControl({ type: "devices.capabilities.color_setting", instance: "colorTemperatureK", value: 2700 });
+          brightnessSlider.value = 30;
+          brightnessVal.textContent = "30%";
+          tempSlider.value = 2700;
+          tempVal.textContent = "2700 K";
+          powerStatus.textContent = "On";
+          powerStatus.style.color = "var(--status-success)";
+        } else if (scene === "night") {
+          log("Night Light scene (2% · 2200K)");
+          await sendControl({ type: "devices.capabilities.on_off", instance: "powerSwitch", value: 1 });
+          await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: 2 });
+          await sendControl({ type: "devices.capabilities.color_setting", instance: "colorTemperatureK", value: 2200 });
+          brightnessSlider.value = 2;
+          brightnessVal.textContent = "2%";
+          tempSlider.value = 2200;
+          tempVal.textContent = "2200 K";
+          powerStatus.textContent = "On";
+          powerStatus.style.color = "var(--status-success)";
+        }
+      });
+    });
+
+    turnOnBtn.addEventListener("click", async () => {
+      log("Turning on...");
+      const ok = await sendControl({
+        type: "devices.capabilities.on_off",
+        instance: "powerSwitch",
+        value: 1
+      });
+      if (ok) {
+        powerStatus.textContent = "On";
+        powerStatus.style.color = "var(--status-success)";
+        turnOnBtn.classList.add("active");
+        turnOffBtn.classList.remove("active");
+      }
+    });
+
+    turnOffBtn.addEventListener("click", async () => {
+      log("Turning off...");
+      const ok = await sendControl({
+        type: "devices.capabilities.on_off",
+        instance: "powerSwitch",
+        value: 0
+      });
+      if (ok) {
+        powerStatus.textContent = "Off";
+        powerStatus.style.color = "var(--text-muted)";
+        turnOffBtn.classList.add("active");
+        turnOnBtn.classList.remove("active");
+      }
+    });
+
+    brightnessSlider.addEventListener("input", (e) => {
+      brightnessVal.textContent = e.target.value + "%";
+    });
+
+    brightnessSlider.addEventListener("change", async (e) => {
+      const val = parseInt(e.target.value, 10);
+      log(`Setting brightness to ${val}%...`);
+      await sendControl({
+        type: "devices.capabilities.range",
+        instance: "brightness",
+        value: val
+      });
+    });
+
+    document.querySelectorAll("[data-brightness]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const val = parseInt(btn.dataset.brightness, 10);
+        brightnessSlider.value = val;
+        brightnessVal.textContent = val + "%";
+        log(`Setting brightness to ${val}%...`);
+        await sendControl({
+          type: "devices.capabilities.range",
+          instance: "brightness",
+          value: val
+        });
+      });
+    });
+
+    function hexToRgbInt(hex) {
+      hex = hex.replace("#", "");
+      return parseInt(hex, 16);
+    }
+
+    async function setColorHex(hex) {
+      colorPicker.value = hex;
+      colorHexText.textContent = hex.toUpperCase();
+      colorVal.textContent = hex.toUpperCase();
+      const rgbInt = hexToRgbInt(hex);
+      log(`Setting color to ${hex.toUpperCase()}...`);
+      await sendControl({
+        type: "devices.capabilities.color_setting",
+        instance: "colorRgb",
+        value: rgbInt
+      });
+    }
+
+    colorPicker.addEventListener("input", (e) => {
+      colorHexText.textContent = e.target.value.toUpperCase();
+      colorVal.textContent = e.target.value.toUpperCase();
+    });
+
+    colorPicker.addEventListener("change", async (e) => {
+      await setColorHex(e.target.value);
+    });
+
+    applyColorBtn.addEventListener("click", async () => {
+      await setColorHex(colorPicker.value);
+    });
+
+    document.querySelectorAll(".color-swatch").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await setColorHex(btn.dataset.hex);
+      });
+    });
+
+    tempSlider.addEventListener("input", (e) => {
+      tempVal.textContent = e.target.value + " K";
+    });
+
+    tempSlider.addEventListener("change", async (e) => {
+      const val = parseInt(e.target.value, 10);
+      log(`Setting temp to ${val}K...`);
+      await sendControl({
+        type: "devices.capabilities.color_setting",
+        instance: "colorTemperatureK",
+        value: val
+      });
+    });
+
+    document.querySelectorAll("[data-temp]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const val = parseInt(btn.dataset.temp, 10);
+        tempSlider.value = val;
+        tempVal.textContent = val + " K";
+        log(`Setting temp to ${val}K...`);
+        await sendControl({
+          type: "devices.capabilities.color_setting",
+          instance: "colorTemperatureK",
+          value: val
+        });
+      });
+    });
+
+    refreshBtn.addEventListener("click", () => {
+      fetchDevices();
+      fetchState();
+      fetchTimer();
+    });
+
+    // --- Music Beat Pulse Logic ---
+    let audioCtx = null;
+    let analyser = null;
+    let micStream = null;
+    let isListening = false;
+    let animFrameId = null;
+    let lastBeatTriggerTime = 0;
+    const BEAT_COOLDOWN_MS = 650;
+    let beatMode = "color";
+    let sensitivityValue = 50;
+
+    const BEAT_COLORS = [
+      0x3b82f6, // Blue
+      0xef4444, // Red
+      0x10b981, // Green
+      0x8b5cf6, // Purple
+      0x06b6d4, // Cyan
+      0xf59e0b, // Amber
+      0xec4899  // Magenta
+    ];
+    let currentColorIdx = 0;
+    let pulseHigh = false;
+
+    const beatIndicator = document.getElementById("beatIndicator");
+    const visualizerCanvas = document.getElementById("audioVisualizer");
+    const canvasCtx = visualizerCanvas.getContext("2d");
+    const toggleMicBtn = document.getElementById("toggleMicBtn");
+    const modeColorBtn = document.getElementById("modeColorBtn");
+    const modePulseBtn = document.getElementById("modePulseBtn");
+    const modeBothBtn = document.getElementById("modeBothBtn");
+    const sensitivitySlider = document.getElementById("sensitivitySlider");
+    const sensitivityVal = document.getElementById("sensitivityVal");
+
+    sensitivitySlider.addEventListener("input", (e) => {
+      sensitivityValue = parseInt(e.target.value, 10);
+      sensitivityVal.textContent = sensitivityValue + "%";
+    });
+
+    function setBeatMode(mode) {
+      beatMode = mode;
+      [modeColorBtn, modePulseBtn, modeBothBtn].forEach(b => {
+        b.style.backgroundColor = "var(--bg-well)";
+        b.style.color = "var(--text-muted)";
+      });
+      if (mode === "color") {
+        modeColorBtn.style.backgroundColor = "var(--bg-element-hover)";
+        modeColorBtn.style.color = "var(--accent-primary)";
+      } else if (mode === "pulse") {
+        modePulseBtn.style.backgroundColor = "var(--bg-element-hover)";
+        modePulseBtn.style.color = "var(--accent-primary)";
+      } else if (mode === "both") {
+        modeBothBtn.style.backgroundColor = "var(--bg-element-hover)";
+        modeBothBtn.style.color = "var(--accent-primary)";
+      }
+    }
+
+    modeColorBtn.addEventListener("click", () => setBeatMode("color"));
+    modePulseBtn.addEventListener("click", () => setBeatMode("pulse"));
+    modeBothBtn.addEventListener("click", () => setBeatMode("both"));
+
+    async function toggleMic() {
+      if (isListening) {
+        stopMicListening();
+      } else {
+        await startMicListening();
+      }
+    }
+
+    async function startMicListening() {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        const source = audioCtx.createMediaStreamSource(micStream);
+        source.connect(analyser);
+
+        isListening = true;
+        toggleMicBtn.textContent = "Stop Listening";
+        toggleMicBtn.className = "btn btn-off";
+        beatIndicator.textContent = "Listening";
+        beatIndicator.className = "beat-pill active";
+        log("Microphone connected: beat pulse active", "success");
+
+        drawVisualizer();
+      } catch (err) {
+        log(`Mic error: ${err.message}`, "error");
+      }
+    }
+
+    function stopMicListening() {
+      isListening = false;
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+      toggleMicBtn.textContent = "Start Mic Listening";
+      toggleMicBtn.className = "btn btn-on";
+      beatIndicator.textContent = "Mic Off";
+      beatIndicator.className = "beat-pill";
+      canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+      log("Microphone stopped");
+    }
+
+    toggleMicBtn.addEventListener("click", toggleMic);
+
+    function drawVisualizer() {
+      if (!isListening || !analyser) return;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyser.getByteFrequencyData(dataArray);
+
+      let bassSum = 0;
+      const bassCount = Math.min(4, bufferLength);
+      for (let i = 1; i <= bassCount; i++) {
+        bassSum += dataArray[i];
+      }
+      const bassAvg = bassSum / bassCount;
+
+      const threshold = 230 - (sensitivityValue * 1.8);
+      const now = Date.now();
+
+      if (bassAvg > threshold && (now - lastBeatTriggerTime) > BEAT_COOLDOWN_MS) {
+        lastBeatTriggerTime = now;
+        onBeatTriggered();
+      }
+
+      const width = visualizerCanvas.width = visualizerCanvas.clientWidth;
+      const height = visualizerCanvas.height = visualizerCanvas.clientHeight;
+      canvasCtx.fillStyle = "#0b0f19";
+      canvasCtx.fillRect(0, 0, width, height);
+
+      const numBars = 16;
+      const barWidth = (width / numBars) - 2;
+
+      for (let i = 0; i < numBars; i++) {
+        const val = dataArray[i] || 0;
+        const barHeight = (val / 255) * height;
+        canvasCtx.fillStyle = (i <= bassCount && val > threshold) ? "#f59e0b" : "#3b82f6";
+        canvasCtx.fillRect(i * (barWidth + 2), height - barHeight, barWidth, barHeight);
+      }
+
+      const thresholdY = height - (threshold / 255) * height;
+      canvasCtx.strokeStyle = "#1e2638";
+      canvasCtx.lineWidth = 1;
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(0, thresholdY);
+      canvasCtx.lineTo(width, thresholdY);
+      canvasCtx.stroke();
+
+      animFrameId = requestAnimationFrame(drawVisualizer);
+    }
+
+    async function onBeatTriggered() {
+      beatIndicator.textContent = "BEAT!";
+      beatIndicator.style.backgroundColor = "#ea580c";
+      setTimeout(() => {
+        if (isListening) {
+          beatIndicator.textContent = "Listening";
+          beatIndicator.style.backgroundColor = "";
+        }
+      }, 250);
+
+      if (beatMode === "color") {
+        const nextColor = BEAT_COLORS[currentColorIdx];
+        currentColorIdx = (currentColorIdx + 1) % BEAT_COLORS.length;
+        await sendControl({
+          type: "devices.capabilities.color_setting",
+          instance: "colorRgb",
+          value: nextColor
+        });
+      } else if (beatMode === "pulse") {
+        pulseHigh = !pulseHigh;
+        const targetBrightness = pulseHigh ? 100 : 30;
+        await sendControl({
+          type: "devices.capabilities.range",
+          instance: "brightness",
+          value: targetBrightness
+        });
+      } else if (beatMode === "both") {
+        const nextColor = BEAT_COLORS[currentColorIdx];
+        currentColorIdx = (currentColorIdx + 1) % BEAT_COLORS.length;
+        await sendControl({
+          type: "devices.capabilities.color_setting",
+          instance: "colorRgb",
+          value: nextColor
+        });
+        await sendControl({
+          type: "devices.capabilities.range",
+          instance: "brightness",
+          value: 100
+        });
+      }
+    }
+
+    // --- Screen Ambilight Mirror Logic ---
+    let ambilightStream = null;
+    let ambilightInterval = null;
+    let ambilightVideo = null;
+    let ambilightCanvas = null;
+    let ambilightCtx = null;
+    let lastAmbilightHex = "";
+    const AMBILIGHT_INTERVAL_MS = 800;
+
+    const toggleAmbilightBtn = document.getElementById("toggleAmbilightBtn");
+    const ambilightBadge = document.getElementById("ambilightBadge");
+    const ambilightStatus = document.getElementById("ambilightStatus");
+    const ambilightPreview = document.getElementById("ambilightPreview");
+    const ambilightHex = document.getElementById("ambilightHex");
+
+    async function toggleAmbilight() {
+      if (ambilightStream) {
+        stopAmbilight();
+      } else {
+        await startAmbilight();
+      }
+    }
+
+    async function startAmbilight() {
+      try {
+        ambilightStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 5, cursor: "never" },
+          audio: false
+        });
+
+        if (!ambilightVideo) {
+          ambilightVideo = document.createElement("video");
+          ambilightVideo.autoplay = true;
+          ambilightVideo.playsInline = true;
+          ambilightCanvas = document.createElement("canvas");
+          ambilightCanvas.width = 16;
+          ambilightCanvas.height = 9;
+          ambilightCtx = ambilightCanvas.getContext("2d", { willReadFrequently: true });
+        }
+
+        ambilightVideo.srcObject = ambilightStream;
+        await ambilightVideo.play();
+
+        ambilightStream.getVideoTracks()[0].addEventListener("ended", stopAmbilight);
+
+        ambilightBadge.className = "status-badge online";
+        ambilightStatus.textContent = "Active";
+        toggleAmbilightBtn.textContent = "Stop Mirror";
+        toggleAmbilightBtn.className = "btn btn-off";
+        log("Screen Ambilight started", "success");
+
+        ambilightInterval = setInterval(sampleScreenColor, AMBILIGHT_INTERVAL_MS);
+      } catch (err) {
+        log(`Ambilight error: ${err.message}`, "error");
+      }
+    }
+
+    function stopAmbilight() {
+      if (ambilightInterval) {
+        clearInterval(ambilightInterval);
+        ambilightInterval = null;
+      }
+      if (ambilightStream) {
+        ambilightStream.getTracks().forEach(t => t.stop());
+        ambilightStream = null;
+      }
+      ambilightBadge.className = "status-badge";
+      ambilightStatus.textContent = "Inactive";
+      toggleAmbilightBtn.textContent = "Start Screen Mirror";
+      toggleAmbilightBtn.className = "btn btn-secondary";
+      ambilightPreview.style.backgroundColor = "var(--bg-well)";
+      ambilightHex.textContent = "#------";
+      log("Screen Ambilight stopped");
+    }
+
+    async function sampleScreenColor() {
+      if (!ambilightVideo || ambilightVideo.readyState < 2) return;
+
+      ambilightCtx.drawImage(ambilightVideo, 0, 0, 16, 9);
+      const imgData = ambilightCtx.getImageData(0, 0, 16, 9).data;
+
+      let rSum = 0, gSum = 0, bSum = 0, count = 0;
+      for (let i = 0; i < imgData.length; i += 4) {
+        rSum += imgData[i];
+        gSum += imgData[i + 1];
+        bSum += imgData[i + 2];
+        count++;
+      }
+
+      const r = Math.round(rSum / count);
+      const g = Math.round(gSum / count);
+      const b = Math.round(bSum / count);
+
+      const hex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+      ambilightPreview.style.backgroundColor = hex;
+      ambilightHex.textContent = hex.toUpperCase();
+
+      if (hex !== lastAmbilightHex) {
+        lastAmbilightHex = hex;
+        const rgbInt = (r << 16) | (g << 8) | b;
+        await sendControl({
+          type: "devices.capabilities.color_setting",
+          instance: "colorRgb",
+          value: rgbInt
+        });
+      }
+    }
+
+    toggleAmbilightBtn.addEventListener("click", toggleAmbilight);
+
+    // --- Browser Voice Commands Logic ---
+    let speechRecognizer = null;
+    let isVoiceListening = false;
+
+    const toggleVoiceBtn = document.getElementById("toggleVoiceBtn");
+    const voiceBadge = document.getElementById("voiceBadge");
+    const voiceStatus = document.getElementById("voiceStatus");
+    const voiceTranscript = document.getElementById("voiceTranscript");
+
+    function initVoice() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        log("Voice recognition not supported in this browser", "error");
+        return;
+      }
+
+      speechRecognizer = new SpeechRecognition();
+      speechRecognizer.continuous = true;
+      speechRecognizer.interimResults = false;
+      speechRecognizer.lang = "en-US";
+
+      speechRecognizer.onstart = () => {
+        isVoiceListening = true;
+        voiceBadge.className = "status-badge online";
+        voiceStatus.textContent = "Listening";
+        toggleVoiceBtn.textContent = "Disable Voice";
+        toggleVoiceBtn.className = "btn btn-off";
+        log("Voice control active: listening", "success");
+      };
+
+      speechRecognizer.onend = () => {
+        if (isVoiceListening) {
+          try { speechRecognizer.start(); } catch(e) {}
+        } else {
+          voiceBadge.className = "status-badge";
+          voiceStatus.textContent = "Mic Off";
+          toggleVoiceBtn.textContent = "Enable Voice";
+          toggleVoiceBtn.className = "btn btn-secondary";
+        }
+      };
+
+      speechRecognizer.onerror = (event) => {
+        if (event.error !== "no-speech") {
+          log(`Voice error: ${event.error}`, "error");
+        }
+      };
+
+      speechRecognizer.onresult = async (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        voiceTranscript.textContent = `Heard: "${transcript}"`;
+        log(`Voice command: "${transcript}"`);
+        await handleVoiceCommand(transcript);
+      };
+    }
+
+    async function handleVoiceCommand(cmd) {
+      if (cmd.includes("turn on") || cmd === "on" || cmd.includes("lights on")) {
+        turnOnBtn.click();
+      } else if (cmd.includes("turn off") || cmd === "off" || cmd.includes("lights off")) {
+        turnOffBtn.click();
+      } else if (cmd.includes("reading")) {
+        document.querySelector('[data-scene="reading"]').click();
+      } else if (cmd.includes("focus")) {
+        document.querySelector('[data-scene="focus"]').click();
+      } else if (cmd.includes("relax")) {
+        document.querySelector('[data-scene="relax"]').click();
+      } else if (cmd.includes("night") || cmd.includes("night light")) {
+        document.querySelector('[data-scene="night"]').click();
+      } else if (cmd.includes("brighter")) {
+        const current = parseInt(brightnessSlider.value, 10);
+        const nextVal = Math.min(100, current + 25);
+        brightnessSlider.value = nextVal;
+        brightnessVal.textContent = nextVal + "%";
+        await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: nextVal });
+      } else if (cmd.includes("dimmer") || cmd.includes("dim")) {
+        const current = parseInt(brightnessSlider.value, 10);
+        const nextVal = Math.max(1, current - 25);
+        brightnessSlider.value = nextVal;
+        brightnessVal.textContent = nextVal + "%";
+        await sendControl({ type: "devices.capabilities.range", instance: "brightness", value: nextVal });
+      } else if (cmd.includes("red")) {
+        await setColorHex("#ef4444");
+      } else if (cmd.includes("blue")) {
+        await setColorHex("#3b82f6");
+      } else if (cmd.includes("green")) {
+        await setColorHex("#22c55e");
+      } else if (cmd.includes("yellow")) {
+        await setColorHex("#eab308");
+      } else if (cmd.includes("orange")) {
+        await setColorHex("#f97316");
+      } else if (cmd.includes("cyan")) {
+        await setColorHex("#06b6d4");
+      } else if (cmd.includes("warm white")) {
+        await setColorHex("#ffe4b5");
+      } else if (cmd.includes("white")) {
+        await setColorHex("#ffffff");
+      }
+    }
+
+    toggleVoiceBtn.addEventListener("click", () => {
+      if (!speechRecognizer) {
+        initVoice();
+      }
+      if (!speechRecognizer) return;
+
+      if (isVoiceListening) {
+        isVoiceListening = false;
+        speechRecognizer.stop();
+        log("Voice control disabled");
+      } else {
+        speechRecognizer.start();
+      }
+    });
+
+    // Initial load
+    if (!authToken) {
+      showAuthModal();
+    } else {
+      fetchDevices();
+    }
+  </script>
+</body>
+</html>

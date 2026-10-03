@@ -1,0 +1,16 @@
+# Private configuration containing your secret API key
+config.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code personal settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# OS files
+.DS_Store
+Thumbs.db
