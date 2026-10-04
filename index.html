@@ -176,6 +176,19 @@
       color: var(--apple-red);
     }
 
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--apple-green);
+      display: inline-block;
+      transition: background-color 0.15s ease;
+    }
+
+    .live-dot.paused {
+      background-color: var(--apple-text-tertiary);
+    }
+
     /* iOS Segmented Navigation */
     .segmented-bar {
       display: flex;
@@ -786,6 +799,10 @@
           <span class="status-dot"></span>
           <span id="statusText">Connecting</span>
         </div>
+        <button class="btn-pill" id="autoSyncBtn" title="Toggle Real-Time Auto-Sync">
+          <span class="live-dot" id="autoSyncDot"></span>
+          <span id="autoSyncLabel">Live</span>
+        </button>
         <button class="btn-pill" id="refreshBtn" title="Sync device status">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -1082,6 +1099,30 @@
     const refreshBtn = document.getElementById("refreshBtn");
     const applyColorBtn = document.getElementById("applyColorBtn");
 
+    // Live Auto-Sync Elements & State
+    const autoSyncBtn = document.getElementById("autoSyncBtn");
+    const autoSyncDot = document.getElementById("autoSyncDot");
+    const autoSyncLabel = document.getElementById("autoSyncLabel");
+
+    let autoSyncEnabled = true;
+    let autoSyncTimer = null;
+    let isUserInteracting = false;
+    let interactionTimeout = null;
+
+    function markUserInteraction() {
+      isUserInteracting = true;
+      clearTimeout(interactionTimeout);
+      interactionTimeout = setTimeout(() => {
+        isUserInteracting = false;
+      }, 1500);
+    }
+
+    ["pointerdown", "mousedown", "touchstart", "input"].forEach(evt => {
+      if (brightnessSlider) brightnessSlider.addEventListener(evt, markUserInteraction);
+      if (tempSlider) tempSlider.addEventListener(evt, markUserInteraction);
+      if (colorPicker) colorPicker.addEventListener(evt, markUserInteraction);
+    });
+
     // Feather Visualizer Elements
     const featherPreviewImg = document.getElementById("featherPreviewImg");
     const featherViewLampBtn = document.getElementById("featherViewLampBtn");
@@ -1260,6 +1301,7 @@
       fetchState();
       fetchTimer();
       updateFeatherPreview();
+      scheduleAutoSync();
       if (autoSwitchTab) {
         switchTab("controls");
         log(`Selected ${device.deviceName} (${device.location || device.sku})`, "success");
@@ -1329,6 +1371,7 @@
           hideAuthModal();
           log("Authenticated successfully", "success");
           fetchDevices();
+          scheduleAutoSync();
         } else {
           pinError.textContent = data.error || "Incorrect PIN";
         }
@@ -1345,6 +1388,7 @@
     logoutBtn.addEventListener("click", () => {
       authToken = "";
       localStorage.removeItem("govee_auth_token");
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
       showAuthModal();
       log("Session locked");
     });
@@ -1362,6 +1406,8 @@
         });
         if (data.code === 200) {
           log(`Updated ${capability.instance}`, "success");
+          // Re-sync after small delay to confirm hardware reflection
+          setTimeout(() => { if (autoSyncEnabled) fetchState(true); }, 750);
           return true;
         } else {
           log(`Error: ${data.message || data.code}`, "error");
@@ -1375,10 +1421,17 @@
       }
     }
 
-    async function fetchState() {
+    let lastKnownPower = null;
+    let lastKnownBrightness = null;
+    let lastKnownHex = null;
+    let lastKnownTemp = null;
+
+    async function fetchState(silent = false) {
       if (!currentDevice) return;
-      statusBadge.className = "status-badge";
-      statusText.textContent = "Updating...";
+      if (!silent) {
+        statusBadge.className = "status-badge";
+        statusText.textContent = "Updating...";
+      }
 
       try {
         const data = await apiRequest(`/api/status?device=${encodeURIComponent(currentDevice.device)}&sku=${encodeURIComponent(currentDevice.sku)}`);
@@ -1387,6 +1440,8 @@
         }
 
         const caps = data.payload.capabilities;
+        let changeDetected = false;
+
         caps.forEach(cap => {
           if (cap.instance === "online") {
             const isOnline = Boolean(cap.state && cap.state.value);
@@ -1395,6 +1450,11 @@
           }
           if (cap.instance === "powerSwitch") {
             const isOn = cap.state && cap.state.value === 1;
+            if (lastKnownPower !== null && lastKnownPower !== isOn) {
+              changeDetected = true;
+              log(`Power turned ${isOn ? "on" : "off"} (synced)`, "info");
+            }
+            lastKnownPower = isOn;
             powerStatus.textContent = isOn ? "On" : "Off";
             powerStatus.style.color = isOn ? "var(--apple-green)" : "var(--apple-text-secondary)";
             if (isOn) {
@@ -1408,35 +1468,59 @@
           if (cap.instance === "brightness") {
             const b = cap.state && cap.state.value;
             if (b !== undefined && b !== null && b !== "") {
-              brightnessSlider.value = b;
-              brightnessVal.textContent = b + "%";
+              if (lastKnownBrightness !== null && lastKnownBrightness !== b) {
+                changeDetected = true;
+              }
+              lastKnownBrightness = b;
+              if (!isUserInteracting) {
+                brightnessSlider.value = b;
+                brightnessVal.textContent = b + "%";
+              }
             }
           }
           if (cap.instance === "colorRgb") {
             const c = cap.state && cap.state.value;
             if (c !== undefined && c !== null && c !== "") {
               const hex = "#" + Number(c).toString(16).padStart(6, "0");
-              colorPicker.value = hex;
-              colorHexText.textContent = hex.toUpperCase();
-              colorVal.textContent = hex.toUpperCase();
+              if (lastKnownHex !== null && lastKnownHex.toLowerCase() !== hex.toLowerCase()) {
+                changeDetected = true;
+              }
+              lastKnownHex = hex;
+              if (!isUserInteracting) {
+                colorPicker.value = hex;
+                colorHexText.textContent = hex.toUpperCase();
+                colorVal.textContent = hex.toUpperCase();
+              }
             }
           }
           if (cap.instance === "colorTemperatureK") {
             const t = cap.state && cap.state.value;
             if (t !== undefined && t !== null && t !== "") {
-              tempSlider.value = t;
-              tempVal.textContent = t + " K";
+              if (lastKnownTemp !== null && lastKnownTemp !== t) {
+                changeDetected = true;
+              }
+              lastKnownTemp = t;
+              if (!isUserInteracting) {
+                tempSlider.value = t;
+                tempVal.textContent = t + " K";
+              }
             }
           }
         });
 
-        log("Lamp state synchronized", "success");
+        if (!silent) {
+          log("Lamp state synchronized", "success");
+        } else if (changeDetected) {
+          log("Live sync: state updated", "info");
+        }
         updateFeatherPreview();
       } catch (err) {
         if (err.message !== "Authentication required") {
           statusBadge.className = "status-badge offline";
           statusText.textContent = "Offline";
-          log(`Failed to fetch state: ${err.message}`, "error");
+          if (!silent) {
+            log(`Failed to fetch state: ${err.message}`, "error");
+          }
         }
       }
     }
@@ -1692,6 +1776,45 @@
       fetchDevices();
       fetchState();
       fetchTimer();
+    });
+
+    // Auto-Sync Scheduling & Real-Time Loop
+    function scheduleAutoSync() {
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
+      if (!autoSyncEnabled || !authToken || !currentDevice) return;
+
+      const delay = document.visibilityState === "hidden" ? 18000 : 4500;
+      autoSyncTimer = setTimeout(async () => {
+        if (autoSyncEnabled && authToken && currentDevice && !isUserInteracting) {
+          await fetchState(true);
+        }
+        scheduleAutoSync();
+      }, delay);
+    }
+
+    if (autoSyncBtn) {
+      autoSyncBtn.addEventListener("click", () => {
+        autoSyncEnabled = !autoSyncEnabled;
+        if (autoSyncEnabled) {
+          if (autoSyncDot) autoSyncDot.classList.remove("paused");
+          if (autoSyncLabel) autoSyncLabel.textContent = "Live";
+          log("Real-time auto-sync active", "success");
+          fetchState(true);
+          scheduleAutoSync();
+        } else {
+          if (autoSyncDot) autoSyncDot.classList.add("paused");
+          if (autoSyncLabel) autoSyncLabel.textContent = "Paused";
+          if (autoSyncTimer) clearTimeout(autoSyncTimer);
+          log("Real-time auto-sync paused");
+        }
+      });
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && autoSyncEnabled && authToken && currentDevice) {
+        fetchState(true);
+      }
+      scheduleAutoSync();
     });
 
     // --- Music Beat Pulse Logic ---

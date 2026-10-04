@@ -12,6 +12,7 @@ A minimalist, responsive web controller for Govee smart lights (supporting singl
 - **Music Beat Pulse:** Real-time Web Audio API frequency visualizer that pulses light colors or brightness to music beats.
 - **Screen Ambilight Mirror:** Dynamically samples your PC monitor colors in real time and synchronizes the ceiling light.
 - **Browser Voice Commands:** Hands-free control ("turn on", "turn off", "reading", "focus", "brighter", "dimmer", etc.).
+- **Real-Time Auto-Sync:** Live background polling seamlessly synchronizes power, brightness, and colors if altered via physical wall switches or the official Govee mobile app.
 - **Dynamic Vector Graphics:** Real-time architectural fixture visualization and precision gauge powered by [Feather](https://github.com/Yannis-A-D/feather) rendering engine.
 - **Zero External Dependencies:** Built with Python standard library and vanilla web APIs. Seamlessly integrates with [Feather](https://github.com/Yannis-A-D/feather) when available.
 

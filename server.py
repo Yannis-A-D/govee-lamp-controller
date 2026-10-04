@@ -152,6 +152,11 @@ timer_target_device = None
 timer_target_sku = None
 timer_thread = None
 
+# Smart status caching to protect against Govee API rate limits
+STATUS_CACHE = {}  # (device, sku) -> (timestamp, response_data)
+STATUS_CACHE_LOCK = threading.Lock()
+STATUS_CACHE_TTL = 2.0  # seconds
+
 def call_govee_api(endpoint, method="POST", payload=None):
     url = f"https://openapi.api.govee.com/router/api/v1/{endpoint}"
     data = json.dumps(payload).encode("utf-8") if payload else None
@@ -249,13 +254,27 @@ class ControllerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json(400, {"error": "Missing device or sku parameter"})
                 return
 
+            now = time.time()
+            cache_key = (device, sku)
+            with STATUS_CACHE_LOCK:
+                if cache_key in STATUS_CACHE:
+                    cached_time, cached_res = STATUS_CACHE[cache_key]
+                    if now - cached_time < STATUS_CACHE_TTL:
+                        self.send_json(200, cached_res)
+                        return
+
             res = call_govee_api("device/state", method="POST", payload={
-                "requestId": f"state-{int(time.time())}",
+                "requestId": f"state-{int(now)}",
                 "payload": {
                     "sku": sku,
                     "device": device
                 }
             })
+
+            if res.get("code") == 200:
+                with STATUS_CACHE_LOCK:
+                    STATUS_CACHE[cache_key] = (now, res)
+
             self.send_json(200, res)
             return
 
@@ -348,6 +367,11 @@ class ControllerHandler(http.server.SimpleHTTPRequestHandler):
                     "capability": capability
                 }
             })
+
+            # Invalidate status cache on direct control so next poll gets fresh state
+            with STATUS_CACHE_LOCK:
+                STATUS_CACHE.pop((device, sku), None)
+
             self.send_json(200, res)
             return
 
